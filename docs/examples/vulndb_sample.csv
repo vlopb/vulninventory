@@ -1,0 +1,3 @@
+short_id,name,base_score,details,recommendations,ext_references,cpe
+CVE-2024-1234,Example RCE,9.8,Remote code execution in example library.,Actualizar a la version 1.2.3,https://example.com/advisory,
+CVE-2023-9999,Example XSS,6.1,Reflected XSS in search endpoint.,Escapar salida en HTML,https://example.com/xss,

@@ -1,0 +1,2 @@
+{"short_id":"CVE-2024-1234","name":"Example RCE","base_score":9.8,"details":"Remote code execution in example library.","recommendations":"Actualizar a la version 1.2.3","ext_references":["https://example.com/advisory"]}
+{"short_id":"CVE-2023-9999","name":"Example XSS","base_score":6.1,"details":"Reflected XSS in search endpoint.","recommendations":"Escapar salida en HTML","ext_references":["https://example.com/xss"]}

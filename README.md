@@ -82,42 +82,40 @@ Go to [http://localhost:5173](http://localhost:5173), register an account, and s
 
 ## 📚 Vulnerability Catalog (Optional)
 
-VulnInventory includes a built-in vulnerability catalog (VulnDB) that auto-fills forms when creating findings. Populate it with any CVE feed in JSONL format.
+VulnInventory **no incluye un catalogo precargado**. Cada equipo carga su propio VulnDB desde una fuente externa.
+El endpoint de importacion espera **JSONL** (un JSON por linea).
 
-### Generate from NVD (free)
+### Importar JSONL o CSV
+
+**Ejemplo minimo (sin datos sensibles):**
+
+- `docs/examples/vulndb_sample.jsonl`
+- `docs/examples/vulndb_sample.csv`
+
+**Script de importacion (acepta JSONL o CSV):**
 
 ```bash
-# Install dependency
-pip install requests
-
-# Download last 30 days of CVEs:
-python scripts/nvd_to_jsonl.py --download --recent --output cves_recent.jsonl
-
-# Download full year (recommended: get a free API key at https://nvd.nist.gov/developers/request-an-api-key):
-python scripts/nvd_to_jsonl.py --download --year 2025 --api-key YOUR_KEY --output cves_2025.jsonl
-
-# Convert a local NVD JSON file:
-python scripts/nvd_to_jsonl.py --input nvd_feed.json --output cves.jsonl
+API_BASE_URL=http://localhost:8001 \
+API_KEY=TU_API_KEY \
+./scripts/import_vulndb.sh docs/examples/vulndb_sample.jsonl
 ```
 
-### Import into VulnInventory
+CSV:
+```bash
+API_BASE_URL=http://localhost:8001 \
+API_KEY=TU_API_KEY \
+./scripts/import_vulndb.sh docs/examples/vulndb_sample.csv
+```
 
 **Via UI:** Hallazgos → 📚 Catálogo → Importar JSONL → Upload file
 
-**Via API:**
-```bash
-curl -X POST http://localhost:8000/vulndb/import \
-  -b "access_token=YOUR_COOKIE" \
-  -F "file=@cves_2025.jsonl"
-```
-
-### Expected JSONL format (one JSON per line)
+### Formato JSONL esperado (un JSON por linea)
 
 ```json
-{"name":"CVE-2025-XXXXX","short_id":"CVE-2025-XXXXX","base_score":7.5,"cvssv3":"CVSS:3.1/AV:N/AC:L/...","cwe_id":89,"cwe_name":"CWE-89","details":{"default":"Description..."},"recommendations":{"default":""},"ext_references":{"default":"- [url](url)"},"exploit":false,"published_date":"2025-01-15T00:00:00Z"}
+{"short_id":"CVE-2024-1234","name":"Example RCE","base_score":9.8,"details":"Remote code execution in example library.","recommendations":"Actualizar a la version 1.2.3","ext_references":["https://example.com/advisory"],"cpe":""}
 ```
 
-Compatible sources: [NVD](https://nvd.nist.gov/), [OSV.dev](https://osv.dev/), [CVE.org](https://www.cve.org/) — use the included converter script.
+Documentacion completa: `docs/vulndb-import.md`.
 
 ## 🛠️ Development
 
