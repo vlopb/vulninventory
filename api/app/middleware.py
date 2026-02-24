@@ -33,6 +33,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return count < max_requests
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        if request.method == "OPTIONS":
+            return await call_next(request)
         if self.limit_per_minute <= 0:
             return await call_next(request)
 
