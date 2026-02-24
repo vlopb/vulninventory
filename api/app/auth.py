@@ -3,7 +3,8 @@ from datetime import datetime, timedelta
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+import jwt
+from jwt import PyJWTError
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
@@ -71,7 +72,7 @@ def create_refresh_token(subject: str, expires_days: int | None = None) -> str:
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, _jwt_secret(), algorithms=["HS256"])
-    except JWTError as exc:
+    except PyJWTError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido") from exc
 
 
