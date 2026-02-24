@@ -58,7 +58,10 @@ FastAPI · React · PostgreSQL · Redis · Docker
 
 ## 📸 Capturas
 
-> Capturas próximamente. Incluiremos dashboard, hallazgos y asistente de importación.
+![Dashboard](docs/screenshots/dashboard.png)
+![Hallazgos](docs/screenshots/findings.png)
+![Escaneos](docs/screenshots/escaneos.png)
+![Usuarios](docs/screenshots/usuarios.png)
 
 ## 🚀 Inicio rápido
 
