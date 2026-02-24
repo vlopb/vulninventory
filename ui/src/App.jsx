@@ -24,13 +24,13 @@ const publicRoutes = [
   ["/register", <RegisterPage />],
   ["/forgot-password", <ForgotPasswordPage />],
   ["/reset-password", <ResetPasswordPage />],
-  ["/complete-profile", <CompleteProfilePage />],
   ["/rotate-password", <RotatePasswordPage />],
 ];
 
 const protectedRoutes = [
   ["/", <Navigate to="/dashboard" replace />],
   ["/dashboard", <DashboardPage />],
+  ["/complete-profile", <CompleteProfilePage />],
   ["/findings", <FindingsPage />],
   ["/assets", <AssetsPage />],
   ["/scans", <ScansPage />],
