@@ -1,7 +1,6 @@
 # API Reference
 
-Base URL (Docker): `http://localhost:8001`
-Base URL (local dev): `http://localhost:8000` (si ejecutas `uvicorn` manualmente)
+Base URL (Docker/dev): `http://localhost:8001`
 
 ## Authentication
 All endpoints require authentication via httpOnly cookie (browser) or API key (header `X-API-Key`).

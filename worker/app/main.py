@@ -315,7 +315,7 @@ def main() -> None:
     parser.add_argument("--tool", choices=["vulnapi", "wapiti", "osv", "sarif", "nuclei"])
     parser.add_argument("--input")
     parser.add_argument("--schema", default="/app/shared/schema/finding.schema.json")
-    parser.add_argument("--api-base", default=os.environ.get("API_BASE_URL", "http://localhost:8000"))
+    parser.add_argument("--api-base", default=os.environ.get("API_BASE_URL", "http://localhost:8001"))
     parser.add_argument("--interval", type=int, default=15)
     parser.add_argument("--project-id")
     args = parser.parse_args()

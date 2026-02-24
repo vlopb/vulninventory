@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-API_BASE="${API_BASE:-http://localhost:9292}"
+API_BASE="${API_BASE:-http://localhost:8001}"
 EMAIL="${EMAIL:-testuser@example.com}"
 PASSWORD="${PASSWORD:-Password123}"
 ORG_NAME="${ORG_NAME:-Acme Labs}"
@@ -13,6 +13,9 @@ SCAN_TOOL="${SCAN_TOOL:-vulnapi}"
 TARGET_URL="${TARGET_URL:-http://host.docker.internal:2324}"
 REPORT_PATH="${REPORT_PATH:-/tmp/wapiti.json}"
 REPORT_PAYLOAD='{"$schema":"https://seguridadweb.local/schemas/vulnapi-report.json","version":"0.8.10","reports":[{"id":"smoke-1","name":"Smoke Test","issues":[{"id":"SMOKE-1","name":"Test issue","status":"failed","url":"https://example.com","cvss":{"score":5.0,"vector":""},"classifications":{}}]}]}'
+COOKIE_JAR="/tmp/vi_cookies.txt"
+ORIGIN_HEADER="Origin: http://localhost:5173"
+CSRF_HEADER=""
 
 if ! command -v jq >/dev/null 2>&1; then
   echo "jq is required for this script."
@@ -29,17 +32,12 @@ request_json() {
   local url="$2"
   local data="${3:-}"
   shift 3
-  local headers=("$@")
-  local header_args=()
-  local header
-  for header in "${headers[@]}"; do
-    header_args+=(-H "$header")
-  done
+  local curl_args=("$@")
 
   if [[ -n "$data" ]]; then
-    curl -sS -X "$method" "$url" "${header_args[@]}" -H "Content-Type: application/json" -d "$data"
+    curl -sS -X "$method" "$url" "${curl_args[@]}" -H "Content-Type: application/json" -d "$data"
   else
-    curl -sS -X "$method" "$url" "${header_args[@]}"
+    curl -sS -X "$method" "$url" "${curl_args[@]}"
   fi
 }
 
@@ -48,16 +46,11 @@ request_status() {
   local url="$2"
   local data="${3:-}"
   shift 3
-  local headers=("$@")
-  local header_args=()
-  local header
-  for header in "${headers[@]}"; do
-    header_args+=(-H "$header")
-  done
+  local curl_args=("$@")
   if [[ -n "$data" ]]; then
-    curl -sS -o /tmp/vi_body.json -w "%{http_code}" -X "$method" "$url" "${header_args[@]}" -H "Content-Type: application/json" -d "$data"
+    curl -sS -o /tmp/vi_body.json -w "%{http_code}" -X "$method" "$url" "${curl_args[@]}" -H "Content-Type: application/json" -d "$data"
   else
-    curl -sS -o /tmp/vi_body.json -w "%{http_code}" -X "$method" "$url" "${header_args[@]}"
+    curl -sS -o /tmp/vi_body.json -w "%{http_code}" -X "$method" "$url" "${curl_args[@]}"
   fi
 }
 
@@ -70,17 +63,18 @@ show_json() {
 }
 
 echo "==> Login"
-STATUS="$(request_status POST "$API_BASE/auth/login" "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")"
+rm -f "$COOKIE_JAR"
+STATUS="$(curl -sS -o /tmp/vi_body.json -w "%{http_code}" -c "$COOKIE_JAR" -X POST "$API_BASE/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}")"
 echo "Status: $STATUS"
 show_json
-TOKEN="$(jq -r .access_token /tmp/vi_body.json)"
-
-if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
-  echo "Failed to get token."
-  exit 1
+CSRF_TOKEN="$(awk '$6 == "csrf_token" {print $7}' "$COOKIE_JAR" | tail -n 1)"
+if [[ -n "$CSRF_TOKEN" ]]; then
+  CSRF_HEADER="X-CSRF-Token: $CSRF_TOKEN"
 fi
-
-AUTH_HEADER=("Authorization: Bearer $TOKEN")
+AUTH_HEADER=(-b "$COOKIE_JAR" -H "$ORIGIN_HEADER")
+if [[ -n "$CSRF_HEADER" ]]; then
+  AUTH_HEADER+=(-H "$CSRF_HEADER")
+fi
 
 echo "==> List orgs"
 STATUS="$(request_status GET "$API_BASE/orgs" "" "${AUTH_HEADER[@]}")"

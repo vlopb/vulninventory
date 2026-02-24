@@ -163,13 +163,13 @@ Documentación completa: `docs/vulndb-import.md`.
 cd api && python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 # Levantar DB y Redis: docker compose -f docker-compose.dev.yml up -d
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8001
 
 # Frontend (terminal separado)
-cd ui && npm install && npm run dev
+cd ui && npm install && VITE_API_BASE_URL=http://localhost:8001 npm run dev
 
 # Worker (terminal separado)
-cd worker && python worker.py
+cd worker && API_BASE_URL=http://localhost:8001 python -m app.main
 ```
 
 ## 📖 Documentación

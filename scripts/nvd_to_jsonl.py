@@ -282,7 +282,7 @@ Examples:
 
 Import into VulnInventory:
   UI:  Hallazgos → 📚 Catálogo → Importar JSONL
-  API: curl -X POST http://localhost:8000/vulndb/import -F "file=@cves.jsonl"
+  API: curl -X POST http://localhost:8001/vulndb/import -F "file=@cves.jsonl"
         """,
     )
 

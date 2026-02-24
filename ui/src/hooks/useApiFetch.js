@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:9292";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:8001";
 
 export function useApiFetch(path, options = {}) {
   const { enabled = true, deps = [] } = options;
