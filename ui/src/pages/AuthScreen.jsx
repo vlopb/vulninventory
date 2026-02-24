@@ -24,11 +24,17 @@ export default function AuthScreen({ mode = "login", resetMode = false, forcePas
   const [inviteToken, setInviteToken] = useState("");
   const [inviteInfo, setInviteInfo] = useState(null);
   const [inviteAcceptStatus, setInviteAcceptStatus] = useState("");
+  const [showInviteField, setShowInviteField] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard", { replace: true });
+    if (!user) {
+      return;
     }
+    if (user.profile_completed === false) {
+      navigate("/profile", { replace: true });
+      return;
+    }
+    navigate("/dashboard", { replace: true });
   }, [user, navigate]);
 
   useEffect(() => {
@@ -44,6 +50,12 @@ export default function AuthScreen({ mode = "login", resetMode = false, forcePas
       setInviteToken(invite);
     }
   }, [location.search]);
+
+  useEffect(() => {
+    if (inviteToken) {
+      setShowInviteField(true);
+    }
+  }, [inviteToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,27 +117,25 @@ export default function AuthScreen({ mode = "login", resetMode = false, forcePas
       }
       const data = await response.json();
       setUser(data.user || null);
+      if (authMode === "login" && inviteToken) {
+        try {
+          const inviteResponse = await authFetch(`${API_BASE}/invites/${inviteToken}/accept`, {
+            method: "POST",
+            body: JSON.stringify({ email: authForm.email, password: authForm.password }),
+          });
+          if (inviteResponse.ok) {
+            setInviteAcceptStatus("Invitación aceptada");
+            setInviteToken("");
+          } else {
+            const invitePayload = await inviteResponse.json().catch(() => ({}));
+            setInviteAcceptStatus(invitePayload.detail || "No se pudo aceptar la invitación");
+          }
+        } catch (inviteError) {
+          setInviteAcceptStatus(inviteError.message || "No se pudo aceptar la invitación");
+        }
+      }
     } catch (err) {
       setAuthError(err.message || "Autenticación fallida");
-    }
-  }
-
-  async function handleInviteAccept(event) {
-    event.preventDefault();
-    if (!inviteToken || !authForm.email || !authForm.password) {
-      return;
-    }
-    const response = await authFetch(`${API_BASE}/invites/${inviteToken}/accept`, {
-      method: "POST",
-      body: JSON.stringify({ email: authForm.email, password: authForm.password }),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setUser(data.user || null);
-      setInviteToken("");
-      setInviteAcceptStatus("Invitación aceptada");
-    } else {
-      setInviteAcceptStatus("La invitación falló");
     }
   }
 
@@ -308,6 +318,27 @@ export default function AuthScreen({ mode = "login", resetMode = false, forcePas
               <button className="btn btn-primary" type="submit">Continuar</button>
             </form>
             {authMode === "login" ? (
+              <div className="invite-toggle">
+                <button
+                  type="button"
+                  className="btn btn-ghost link-button"
+                  onClick={() => setShowInviteField((prev) => !prev)}
+                >
+                  ¿Te invitaron a una organización?
+                </button>
+                {showInviteField ? (
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder="token de invitación"
+                    value={inviteToken}
+                    onChange={(event) => setInviteToken(event.target.value)}
+                  />
+                ) : null}
+                {inviteAcceptStatus && <p className="status">{inviteAcceptStatus}</p>}
+              </div>
+            ) : null}
+            {authMode === "login" ? (
               <button
                 type="button"
                 className="btn btn-ghost link-button"
@@ -357,17 +388,6 @@ export default function AuthScreen({ mode = "login", resetMode = false, forcePas
             {resetStatus ? <p className="status">{resetStatus}</p> : null}
           </form>
         ) : null}
-        <form onSubmit={handleInviteAccept} className="invite-accept">
-          <input
-            className="form-input"
-            type="text"
-            placeholder="token de invitación"
-            value={inviteToken}
-            onChange={(event) => setInviteToken(event.target.value)}
-          />
-          <button className="btn btn-primary" type="submit">Aceptar invitación</button>
-        </form>
-        {inviteAcceptStatus && <p className="status">{inviteAcceptStatus}</p>}
         {authError && <p className="status">{authError}</p>}
       </div>
     </section>

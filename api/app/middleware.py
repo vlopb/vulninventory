@@ -41,6 +41,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ip = request.client.host if request.client else "unknown"
         if request.url.path == "/auth/logout":
             return await call_next(request)
+        if request.url.path == "/auth/register":
+            key = f"rl:auth:register:{ip}"
+            allowed = self._rate_limit(key, max_requests=30, window_seconds=60)
+            if not allowed:
+                return Response("Rate limit exceeded", status_code=429)
+            return await call_next(request)
         if "/auth/" in request.url.path:
             key = f"rl:auth:{ip}"
             allowed = self._rate_limit(key, max_requests=10, window_seconds=60)

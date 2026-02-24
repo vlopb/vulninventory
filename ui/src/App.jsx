@@ -30,7 +30,7 @@ const publicRoutes = [
 const protectedRoutes = [
   ["/", <Navigate to="/dashboard" replace />],
   ["/dashboard", <DashboardPage />],
-  ["/complete-profile", <CompleteProfilePage />],
+  ["/complete-profile", <Navigate to="/profile" replace />],
   ["/findings", <FindingsPage />],
   ["/assets", <AssetsPage />],
   ["/scans", <ScansPage />],

@@ -199,6 +199,8 @@ class PaginatedResponse(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: str
+    full_name: Optional[str] = None
+    title: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

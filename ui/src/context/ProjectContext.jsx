@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { API_BASE, authFetch, unwrapItems } from "../utils/api";
 
@@ -7,6 +7,7 @@ const ProjectContext = createContext(null);
 export function ProjectProvider({ children }) {
   const { user } = useAuth();
   const isAuthenticated = Boolean(user);
+  const lastUserIdRef = useRef(null);
   const [orgs, setOrgs] = useState([]);
   const [projects, setProjects] = useState([]);
   const [orgId, setOrgId] = useState(() => localStorage.getItem("vi_selectedOrg") || "");
@@ -105,6 +106,38 @@ export function ProjectProvider({ children }) {
       setOrgId(String(orgs[0].id));
     }
   }, [orgs, orgId]);
+
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (currentUserId && lastUserIdRef.current && lastUserIdRef.current !== currentUserId) {
+      setOrgs([]);
+      setProjects([]);
+      setOrgId("");
+      setProjectId("");
+    }
+    lastUserIdRef.current = currentUserId;
+  }, [user]);
+
+  useEffect(() => {
+    if (!orgs.length || !orgId) {
+      return;
+    }
+    const hasOrg = orgs.some((org) => String(org.id) === String(orgId));
+    if (!hasOrg) {
+      setOrgId(String(orgs[0].id));
+      setProjectId("");
+    }
+  }, [orgs, orgId]);
+
+  useEffect(() => {
+    if (!projects.length || !projectId) {
+      return;
+    }
+    const hasProject = projects.some((project) => String(project.id) === String(projectId));
+    if (!hasProject) {
+      setProjectId(String(projects[0].id));
+    }
+  }, [projects, projectId]);
 
   const value = {
     orgs,

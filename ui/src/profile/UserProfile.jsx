@@ -157,7 +157,7 @@ export default function UserProfile({
       {toast ? <div className="profile-page__toast">{toast}</div> : null}
       {requiresProfile ? (
         <div className="profile-page__banner">
-          Completa tu perfil para continuar usando la aplicación.
+          Completa tu perfil para comenzar a crear proyectos y gestionar vulnerabilidades.
         </div>
       ) : null}
       <ProfileHeader user={profileData} onAvatarChange={() => showToast("Avatar actualizado")} />

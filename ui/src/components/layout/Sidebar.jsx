@@ -35,6 +35,7 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
   const [showNewProjectModal, setShowNewProjectModal] = useState(false);
   const [newClientName, setNewClientName] = useState("");
   const [newProjectName, setNewProjectName] = useState("");
+  const profileIncomplete = user?.profile_completed === false;
 
   useEffect(() => {
     if (orgId) {
@@ -80,6 +81,10 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
     if (!route) {
       return;
     }
+    if (profileIncomplete && route !== "/profile") {
+      navigate("/profile");
+      return;
+    }
     navigate(route);
     if (window.innerWidth <= 768) {
       setSidebarMobileOpen(false);
@@ -101,7 +106,12 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
               className="sidebar-add-btn"
               type="button"
               title="Nuevo cliente"
+              disabled={profileIncomplete}
               onClick={() => {
+                if (profileIncomplete) {
+                  handleNavigate("perfil");
+                  return;
+                }
                 setNewClientName("");
                 setShowNewClientModal(true);
               }}
@@ -128,6 +138,10 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
                       isActive && !projectId ? "sidebar-tree-item--active" : ""
                     }`}
                     onClick={() => {
+                      if (profileIncomplete) {
+                        handleNavigate("perfil");
+                        return;
+                      }
                       setOrgId(String(org.id));
                       setProjectId("");
                       toggleClientExpanded(org.id);
@@ -170,6 +184,10 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
                               isProjectActive ? "sidebar-tree-item--active" : ""
                             }`}
                             onClick={() => {
+                              if (profileIncomplete) {
+                                handleNavigate("perfil");
+                                return;
+                              }
                               setOrgId(String(org.id));
                               setProjectId(String(project.id));
                               handleNavigate("dashboard");
@@ -183,6 +201,10 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
                       <div
                         className="sidebar-tree-item sidebar-tree-item--add"
                         onClick={() => {
+                          if (profileIncomplete) {
+                            handleNavigate("perfil");
+                            return;
+                          }
                           setOrgId(String(org.id));
                           setNewProjectName("");
                           setShowNewProjectModal(true);
@@ -245,12 +267,15 @@ export function Sidebar({ sidebarOpen, setSidebarOpen, sidebarMobileOpen, setSid
               type="button"
               className="sidebar-link"
               onClick={() => handleNavigate(item.key)}
-              disabled={!projectId && item.key !== "dashboard"}
+              disabled={(profileIncomplete && item.key !== "perfil") || (!projectId && item.key !== "dashboard")}
               title={!sidebarOpen ? item.label : undefined}
             >
               <span className="sidebar-link-icon" dangerouslySetInnerHTML={{ __html: item.icon }} />
               {sidebarOpen && <span className="sidebar-link-label">{item.label}</span>}
               {!projectId && item.key !== "dashboard" && sidebarOpen && (
+                <span className="sidebar-link-lock">🔒</span>
+              )}
+              {profileIncomplete && item.key !== "perfil" && sidebarOpen && (
                 <span className="sidebar-link-lock">🔒</span>
               )}
             </button>

@@ -538,6 +538,80 @@
   color: var(--text-muted);
 }
 
+/* ═══ EXISTING USER SELECT ═══ */
+.user-select-list {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.user-select-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-primary);
+  transition: var(--transition-fast);
+}
+
+.user-select-item:last-child {
+  border-bottom: none;
+}
+
+.user-select-item:hover {
+  background: var(--bg-hover);
+}
+
+.user-select-item--active {
+  background: var(--accent-primary-subtle);
+  border-color: var(--accent-primary);
+}
+
+.user-select-radio input[type="radio"] {
+  accent-color: var(--accent-primary);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.user-select-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.user-select-email {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.user-select-meta {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.user-select-role {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.user-select-role label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.user-select-role select {
+  flex: 1;
+  max-width: 200px;
+}
+
 .users-modal-footer {
   display: flex;
   justify-content: flex-end;

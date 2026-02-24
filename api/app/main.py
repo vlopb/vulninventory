@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import case, desc, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from . import crud, models, schemas
 from .auth import (
@@ -192,14 +193,29 @@ def register_user(payload: schemas.UserCreate, db: Session = Depends(get_db)) ->
         raise HTTPException(status_code=403, detail="Registro deshabilitado")
     if crud.get_user_by_email(db, payload.email):
         raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    if crud.get_organization_by_name(db, payload.organization):
+        raise HTTPException(status_code=400, detail="El cliente ya existe")
     user = crud.create_user(db, payload.email, hash_password(payload.password))
-    org = crud.create_organization(db, payload.organization)
+    try:
+        org = crud.create_organization(db, payload.organization)
+    except IntegrityError:
+        db.rollback()
+        try:
+            db.delete(user)
+            db.commit()
+        except Exception:
+            db.rollback()
+        raise HTTPException(status_code=400, detail="El cliente ya existe") from None
     crud.create_membership(db, user.id, org.id, role="admin")
     access_token = create_access_token(user.email)
     refresh_token = create_refresh_token(user.email)
     response = JSONResponse(
         content={
-            "user": {"id": user.id, "email": user.email},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "profile_completed": user.profile_completed,
+            },
             "requires_profile": True,
         }
     )
@@ -228,7 +244,11 @@ def login_user(payload: schemas.LoginRequest, request: Request, db: Session = De
     refresh_token = create_refresh_token(user.email)
     response = JSONResponse(
         content={
-            "user": {"id": user.id, "email": user.email},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "profile_completed": user.profile_completed,
+            },
             "requires_profile": not user.profile_completed,
         }
     )
@@ -260,7 +280,11 @@ def refresh_token(request: Request, db: Session = Depends(get_db)) -> JSONRespon
     new_refresh = create_refresh_token(user.email)
     response = JSONResponse(
         content={
-            "user": {"id": user.id, "email": user.email},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "profile_completed": user.profile_completed,
+            },
             "requires_profile": not user.profile_completed,
         }
     )
@@ -292,7 +316,11 @@ def rotate_password(payload: schemas.AuthPasswordRotate, db: Session = Depends(g
     refresh_token = create_refresh_token(user.email)
     response = JSONResponse(
         content={
-            "user": {"id": user.id, "email": user.email},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "profile_completed": user.profile_completed,
+            },
             "requires_profile": not user.profile_completed,
         }
     )
@@ -338,7 +366,11 @@ def reset_password(payload: schemas.ResetPasswordRequest, db: Session = Depends(
     refresh_token = create_refresh_token(user.email)
     response = JSONResponse(
         content={
-            "user": {"id": user.id, "email": user.email},
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "profile_completed": user.profile_completed,
+            },
             "requires_profile": not user.profile_completed,
         }
     )

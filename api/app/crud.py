@@ -445,6 +445,11 @@ def create_organization(db: Session, name: str) -> models.Organization:
     return org
 
 
+def get_organization_by_name(db: Session, name: str) -> models.Organization | None:
+    stmt = select(models.Organization).where(models.Organization.name == name)
+    return db.execute(stmt).scalar_one_or_none()
+
+
 def create_membership(db: Session, user_id: int, organization_id: int, role: str = "admin") -> models.Membership:
     membership = models.Membership(user_id=user_id, organization_id=organization_id, role=role)
     db.add(membership)

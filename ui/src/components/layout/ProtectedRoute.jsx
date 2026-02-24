@@ -18,8 +18,8 @@ export function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user && user.profile_completed === false && location.pathname !== "/complete-profile") {
-    return <Navigate to="/complete-profile" replace />;
+  if (user && user.profile_completed === false && location.pathname !== "/profile") {
+    return <Navigate to="/profile" replace />;
   }
 
   return children;

@@ -16,12 +16,14 @@ export default function TeamPage() {
   const [invites, setInvites] = useState([]);
   const [invitesLoading, setInvitesLoading] = useState(false);
   const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [memberFilters, setMemberFilters] = useState({ role: "all", search: "" });
   const [inviteFilters, setInviteFilters] = useState({ search: "", showDisabled: false });
   const [showUserModal, setShowUserModal] = useState(false);
   const [userModalTab, setUserModalTab] = useState("existing");
   const [usersTab, setUsersTab] = useState("members");
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [existingSearch, setExistingSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
   const [newMemberRole, setNewMemberRole] = useState("member");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
@@ -132,17 +134,24 @@ export default function TeamPage() {
         return;
       }
       try {
-        const response = await authFetch(`${API_BASE}/users`);
+        if (!cancelled) {
+          setUsersLoading(true);
+        }
+        const response = await authFetch(`${API_BASE}/users?org_id=${orgId}`);
         if (!response.ok) {
           return;
         }
         const data = await response.json();
         if (!cancelled) {
-          setUsers(data);
+          setUsers(unwrapItems(data));
         }
       } catch (err) {
         if (!cancelled) {
           setError(err.message || "No se pudieron cargar los usuarios");
+        }
+      } finally {
+        if (!cancelled) {
+          setUsersLoading(false);
         }
       }
     }
@@ -180,24 +189,37 @@ export default function TeamPage() {
   }, [invites, inviteFilters]);
 
   const availableUsers = useMemo(() => {
-    const memberEmails = new Set(members.map((member) => member.email));
-    return users.filter((member) => !memberEmails.has(member.email));
+    const memberEmails = new Set(members.map((member) => member.email?.toLowerCase()));
+    return users.filter((member) => !memberEmails.has(member.email?.toLowerCase()));
   }, [users, members]);
 
+  const filteredAvailableUsers = useMemo(() => {
+    const search = existingSearch.trim().toLowerCase();
+    return availableUsers.filter((member) => {
+      if (!search) {
+        return true;
+      }
+      return (
+        member.email?.toLowerCase().includes(search) ||
+        member.full_name?.toLowerCase().includes(search) ||
+        member.title?.toLowerCase().includes(search)
+      );
+    });
+  }, [availableUsers, existingSearch]);
+
   useEffect(() => {
-    if (!selectedUserId && availableUsers.length > 0) {
-      setSelectedUserId(String(availableUsers[0].id));
+    if (selectedUser && availableUsers.length > 0) {
+      const stillAvailable = availableUsers.some((member) => member.id === selectedUser.id);
+      if (!stillAvailable) {
+        setSelectedUser(null);
+      }
     }
-  }, [availableUsers, selectedUserId]);
+  }, [availableUsers, selectedUser]);
 
   async function handleAddMember(event) {
     event.preventDefault();
-    if (!orgId || !selectedUserId) {
-      return;
-    }
-    const selectedUser = availableUsers.find((member) => String(member.id) === selectedUserId);
-    if (!selectedUser) {
-      return;
+    if (!orgId || !selectedUser) {
+      return false;
     }
     const response = await authFetch(`${API_BASE}/orgs/${orgId}/members`, {
       method: "POST",
@@ -206,11 +228,12 @@ export default function TeamPage() {
     if (response.ok) {
       const data = await response.json();
       setMembers((prev) => [...prev, data]);
-      setSelectedUserId("");
-      return;
+      setSelectedUser(null);
+      return true;
     }
     const errorPayload = await response.json().catch(() => ({}));
     setError(errorPayload.detail || "No se pudo agregar el miembro");
+    return false;
   }
 
   async function handleInvite(event) {
@@ -793,34 +816,67 @@ export default function TeamPage() {
             </div>
 
             {userModalTab === "existing" && (
-              <form className="users-modal-body" onSubmit={(event) => { handleAddMember(event); setShowUserModal(false); }}>
-                {availableUsers.length === 0 ? (
-                  <div className="users-modal-empty">
-                    <p>No hay usuarios registrados disponibles para agregar.</p>
-                    <span className="form-hint">Usa la pestaña "Invitar por correo" para enviar una invitación.</span>
-                  </div>
+              <form
+                className="users-modal-body"
+                onSubmit={async (event) => {
+                  const added = await handleAddMember(event);
+                  if (added) {
+                    setShowUserModal(false);
+                  }
+                }}
+              >
+                <div className="search-input-wrapper">
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder="Buscar por nombre o email..."
+                    value={existingSearch}
+                    onChange={(event) => setExistingSearch(event.target.value)}
+                    data-shortcut-search
+                  />
+                  <kbd className="search-shortcut-hint">/</kbd>
+                </div>
+                {usersLoading ? (
+                  <SkeletonTable rows={4} columns={2} />
+                ) : filteredAvailableUsers.length === 0 ? (
+                  <EmptyState
+                    icon="team"
+                    title={existingSearch ? "Sin resultados" : "No hay usuarios disponibles"}
+                    description={
+                      existingSearch
+                        ? "No se encontraron usuarios con ese criterio."
+                        : "Todos los usuarios de la plataforma ya son miembros. Usa 'Invitar por correo' para agregar personas nuevas."
+                    }
+                    compact
+                  />
                 ) : (
                   <>
-                    <p className="users-modal-instruction">Selecciona un usuario registrado:</p>
-                    <div className="users-modal-user-list">
-                      {availableUsers.map((member) => (
+                    <div className="user-select-list">
+                      {filteredAvailableUsers.map((member) => (
                         <div
                           key={member.id}
-                          className={`users-modal-user-card ${selectedUserId === String(member.id) ? "users-modal-user-card--selected" : ""}`}
-                          onClick={() => setSelectedUserId(String(member.id))}
+                          className={`user-select-item ${selectedUser?.id === member.id ? "user-select-item--active" : ""}`}
+                          onClick={() => setSelectedUser(member)}
                         >
-                          <div className="users-avatar">{member.email.charAt(0).toUpperCase()}</div>
-                          <span className="users-modal-user-email">{member.email}</span>
-                          {selectedUserId === String(member.id) && (
-                            <svg className="users-modal-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M20 6L9 17l-5-5" />
-                            </svg>
-                          )}
+                          <div className="user-select-radio">
+                            <input
+                              type="radio"
+                              name="selectedUser"
+                              checked={selectedUser?.id === member.id}
+                              onChange={() => setSelectedUser(member)}
+                            />
+                          </div>
+                          <div className="user-select-info">
+                            <span className="user-select-email">{member.email}</span>
+                            <span className="user-select-meta">
+                              {member.full_name || "(sin nombre)"} · {member.title || "(sin cargo)"}
+                            </span>
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <div className="form-group">
-                      <label className="form-label">Rol</label>
+                    <div className="user-select-role">
+                      <label>Rol:</label>
                       <select className="form-select" value={newMemberRole} onChange={(event) => setNewMemberRole(event.target.value)}>
                         {roleOptions.map((role) => (
                           <option key={role.value} value={role.value}>
@@ -828,9 +884,6 @@ export default function TeamPage() {
                           </option>
                         ))}
                       </select>
-                      <span className="form-hint">
-                        {roleOptions.find((role) => role.value === newMemberRole)?.description}
-                      </span>
                     </div>
                   </>
                 )}
@@ -838,7 +891,7 @@ export default function TeamPage() {
                   <button className="btn btn-ghost" type="button" onClick={() => setShowUserModal(false)}>
                     Cancelar
                   </button>
-                  <button className="btn btn-primary" type="submit" disabled={!selectedUserId || availableUsers.length === 0}>
+                  <button className="btn btn-primary" type="submit" disabled={!selectedUser || filteredAvailableUsers.length === 0}>
                     Agregar al proyecto
                   </button>
                 </div>
