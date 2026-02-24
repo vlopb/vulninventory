@@ -9,7 +9,7 @@ class Base(DeclarativeBase):
 
 
 def _build_engine_url() -> str:
-    return os.environ.get("DATABASE_URL", "sqlite:///./vuln_inventory.db")
+    return os.environ.get("DATABASE_URL", "sqlite:///./vulninventory.db")
 
 
 def _is_sqlite(url: str) -> bool:

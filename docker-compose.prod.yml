@@ -4,9 +4,9 @@ services:
   db:
     image: postgres:16
     environment:
-      POSTGRES_DB: vuln_inventory
-      POSTGRES_USER: vulnuser
-      POSTGRES_PASSWORD: vulnpass
+      POSTGRES_DB: ${POSTGRES_DB:-vulninventory}
+      POSTGRES_USER: ${POSTGRES_USER:-vulninventory}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vulninventory}
     volumes:
       - db_data:/var/lib/postgresql/data
 
@@ -14,7 +14,7 @@ services:
     build:
       context: ./api
     environment:
-      DATABASE_URL: postgresql+psycopg://vulnuser:vulnpass@db:5432/vuln_inventory
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vulninventory}:${POSTGRES_PASSWORD:-vulninventory}@db:5432/${POSTGRES_DB:-vulninventory}
       API_HOST: 0.0.0.0
       API_PORT: 8000
       API_KEY: ${API_KEY}
@@ -39,7 +39,7 @@ services:
         OSV_VERSION: ${OSV_VERSION}
         VULNAPI_VERSION: ${VULNAPI_VERSION}
     environment:
-      DATABASE_URL: postgresql+psycopg://vulnuser:vulnpass@db:5432/vuln_inventory
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-vulninventory}:${POSTGRES_PASSWORD:-vulninventory}@db:5432/${POSTGRES_DB:-vulninventory}
       API_BASE_URL: http://api:8000
       API_KEY: ${API_KEY}
       REDIS_URL: redis://redis:6379/0
@@ -78,9 +78,9 @@ services:
     build:
       context: ./deploy/backup
     environment:
-      POSTGRES_DB: vuln_inventory
-      POSTGRES_USER: vulnuser
-      POSTGRES_PASSWORD: vulnpass
+      POSTGRES_DB: ${POSTGRES_DB:-vulninventory}
+      POSTGRES_USER: ${POSTGRES_USER:-vulninventory}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vulninventory}
       DB_HOST: db
       DB_PORT: 5432
       BACKUP_DIR: /backup/data
