@@ -1,5 +1,5 @@
-import AppShell from "../AppShell";
+import AuthScreen from "./AuthScreen";
 
 export default function RotatePasswordPage() {
-  return <AppShell authRoute="rotate-password" />;
+  return <AuthScreen mode="login" forcePassword />;
 }

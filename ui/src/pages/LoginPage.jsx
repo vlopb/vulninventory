@@ -1,5 +1,5 @@
-import AppShell from "../AppShell";
+import AuthScreen from "./AuthScreen";
 
 export default function LoginPage() {
-  return <AppShell authRoute="login" />;
+  return <AuthScreen mode="login" />;
 }

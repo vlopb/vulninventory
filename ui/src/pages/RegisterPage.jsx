@@ -1,5 +1,5 @@
-import AppShell from "../AppShell";
+import AuthScreen from "./AuthScreen";
 
 export default function RegisterPage() {
-  return <AppShell authRoute="register" />;
+  return <AuthScreen mode="register" />;
 }

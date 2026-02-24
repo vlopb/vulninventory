@@ -1,5 +1,5 @@
-import AppShell from "../AppShell";
+import AuthScreen from "./AuthScreen";
 
 export default function ForgotPasswordPage() {
-  return <AppShell authRoute="forgot-password" />;
+  return <AuthScreen mode="login" resetMode />;
 }

@@ -1,5 +1,5 @@
-import AppShell from "../AppShell";
+import UserProfile from "../profile/UserProfile";
 
 export default function CompleteProfilePage() {
-  return <AppShell routeSection="perfil" authRoute="complete-profile" />;
+  return <UserProfile />;
 }

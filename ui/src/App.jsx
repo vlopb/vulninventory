@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ProjectProvider } from "./context/ProjectContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/layout/ProtectedRoute";
+import { AppLayout } from "./components/layout/AppLayout";
 
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -52,7 +53,11 @@ export default function App() {
                 <Route
                   key={path}
                   path={path}
-                  element={<ProtectedRoute>{element}</ProtectedRoute>}
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>{element}</AppLayout>
+                    </ProtectedRoute>
+                  }
                 />
               ))}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

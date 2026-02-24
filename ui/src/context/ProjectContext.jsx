@@ -1,91 +1,125 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "http://localhost:9292";
+import { API_BASE, authFetch, unwrapItems } from "../utils/api";
 
 const ProjectContext = createContext(null);
 
-export function ProjectProvider({ children, autoFetch = false }) {
-  const { isAuthenticated } = useAuth();
-  const [organizations, setOrganizations] = useState([]);
+export function ProjectProvider({ children }) {
+  const { user } = useAuth();
+  const isAuthenticated = Boolean(user);
+  const [orgs, setOrgs] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [selectedOrg, setSelectedOrg] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [orgId, setOrgId] = useState(() => localStorage.getItem("vi_selectedOrg") || "");
+  const [projectId, setProjectId] = useState(() => localStorage.getItem("vi_selectedProject") || "");
 
-  const fetchOrganizations = useCallback(async () => {
+  useEffect(() => {
+    if (orgId) {
+      localStorage.setItem("vi_selectedOrg", orgId);
+    } else {
+      localStorage.removeItem("vi_selectedOrg");
+    }
+  }, [orgId]);
+
+  useEffect(() => {
+    if (projectId) {
+      localStorage.setItem("vi_selectedProject", projectId);
+    } else {
+      localStorage.removeItem("vi_selectedProject");
+    }
+  }, [projectId]);
+
+  const fetchOrgs = useCallback(async () => {
     if (!isAuthenticated) {
-      setOrganizations([]);
-      setSelectedOrg(null);
+      setOrgs([]);
+      setOrgId("");
       return;
     }
     try {
-      const resp = await fetch(`${API_BASE}/orgs`, { credentials: "include" });
+      const resp = await authFetch(`${API_BASE}/orgs`);
       if (resp.ok) {
         const data = await resp.json();
-        setOrganizations(data);
-        if (data.length > 0 && !selectedOrg) {
-          setSelectedOrg(data[0]);
-        }
+        setOrgs(unwrapItems(data));
       }
     } catch (error) {
-      console.error("Error fetching orgs:", error);
+      console.error("Error loading orgs:", error);
     }
-  }, [isAuthenticated, selectedOrg]);
+  }, [isAuthenticated]);
 
-  const fetchProjects = useCallback(async (orgId) => {
-    if (!orgId) {
+  const fetchProjects = useCallback(async (oid) => {
+    if (!oid) {
       setProjects([]);
-      setSelectedProject(null);
+      setProjectId("");
       return;
     }
     try {
-      const resp = await fetch(`${API_BASE}/orgs/${orgId}/projects`, { credentials: "include" });
+      const resp = await authFetch(`${API_BASE}/orgs/${oid}/projects`);
       if (resp.ok) {
         const data = await resp.json();
-        setProjects(data);
-        if (data.length > 0 && !selectedProject) {
-          setSelectedProject(data[0]);
-        }
+        setProjects(unwrapItems(data));
       }
     } catch (error) {
-      console.error("Error fetching projects:", error);
+      console.error("Error loading projects:", error);
     }
-  }, [selectedProject]);
+  }, []);
+
+  const createOrg = useCallback(async (name) => {
+    const resp = await authFetch(`${API_BASE}/orgs`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    if (!resp.ok) {
+      throw new Error("Error creating org");
+    }
+    const data = await resp.json();
+    setOrgs((prev) => [...prev, data]);
+    setOrgId(String(data.id));
+    return data;
+  }, []);
+
+  const createProject = useCallback(async (oid, name) => {
+    const resp = await authFetch(`${API_BASE}/orgs/${oid}/projects`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+    if (!resp.ok) {
+      throw new Error("Error creating project");
+    }
+    const data = await resp.json();
+    setProjects((prev) => [...prev, data]);
+    setProjectId(String(data.id));
+    return data;
+  }, []);
 
   useEffect(() => {
-    if (autoFetch) {
-      fetchOrganizations();
-    }
-  }, [fetchOrganizations, autoFetch]);
+    fetchOrgs();
+  }, [fetchOrgs]);
 
   useEffect(() => {
-    if (autoFetch && selectedOrg) {
-      fetchProjects(selectedOrg.id);
+    if (orgId) {
+      fetchProjects(orgId);
     }
-  }, [selectedOrg, fetchProjects, autoFetch]);
+  }, [orgId, fetchProjects]);
 
-  const value = useMemo(
-    () => ({
-      organizations,
-      setOrganizations,
-      projects,
-      setProjects,
-      selectedOrg,
-      setSelectedOrg,
-      selectedProject,
-      setSelectedProject,
-      fetchOrganizations,
-      fetchProjects,
-    }),
-    [
-      organizations,
-      projects,
-      selectedOrg,
-      selectedProject,
-      fetchOrganizations,
-      fetchProjects,
-    ]
-  );
+  useEffect(() => {
+    if (orgs.length > 0 && !orgId) {
+      setOrgId(String(orgs[0].id));
+    }
+  }, [orgs, orgId]);
+
+  const value = {
+    orgs,
+    setOrgs,
+    fetchOrgs,
+    createOrg,
+    projects,
+    setProjects,
+    fetchProjects,
+    createProject,
+    orgId,
+    setOrgId,
+    projectId,
+    setProjectId,
+  };
 
   return <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>;
 }
