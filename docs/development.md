@@ -17,16 +17,16 @@ cd api
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --port 8001
 
 # Frontend
 cd ui
 npm install
-npm run dev
+VITE_API_BASE_URL=http://localhost:8001 npm run dev
 
 # Worker
 cd worker
-python worker.py
+python -m app.main
 ```
 
 ## Testing

@@ -10,6 +10,10 @@ cp .env.example .env
 docker compose up -d
 ```
 
+Services (default):
+- UI: `http://localhost:5173`
+- API: `http://localhost:8001`
+
 ## Production Checklist
 
 - [ ] Set strong `JWT_SECRET` (min 32 chars)
