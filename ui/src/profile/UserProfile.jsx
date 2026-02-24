@@ -1,4 +1,6 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { API_BASE, authFetch } from "../utils/api";
 import ProfileHeader from "./ProfileHeader";
 import PersonalInfo from "./PersonalInfo";
 import EditProfile from "./EditProfile";
@@ -7,44 +9,147 @@ import ActivityHistory from "./ActivityHistory";
 import NotificationPreferences from "./NotificationPreferences";
 import "./UserProfile.css";
 
-const mockUser = {
-  name: "Cristhian Fernando Roncancio",
-  email: "crisor@prueba.com",
-  phone: "3235792535",
-  position: "Especialista Ciberseguridad",
-  role: "Analista",
-  avatar: null,
-  activityLog: [
-    { action: "Inició sesión", timestamp: "2025-02-17T08:30:00", ip: "192.168.1.45" },
-    { action: "Registró vulnerabilidad CVE-2025-1234", timestamp: "2025-02-17T09:15:00" },
-    { action: "Actualizó estado de CVE-2025-0987 a 'Mitigada'", timestamp: "2025-02-16T16:40:00" },
-    { action: "Exportó reporte mensual", timestamp: "2025-02-16T11:00:00" },
-    { action: "Cambió contraseña", timestamp: "2025-02-15T14:20:00" },
-  ],
-  notifications: {
-    criticalVulns: true,
-    assignedVulns: true,
-    statusUpdates: false,
-    reports: true,
-    systemAlerts: true,
-    channel: "email",
-  },
-};
-
 export default function UserProfile({
-  user = mockUser,
   requiresProfile = false,
-  onProfileSave,
-  onPasswordSave,
-  onNotificationSave,
 }) {
+  const { user: authUser, checkSession } = useAuth();
   const [toast, setToast] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [notifications, setNotifications] = useState(null);
+  const [activityLog, setActivityLog] = useState([]);
 
-  const profileData = useMemo(() => user || mockUser, [user]);
+  const profileData = useMemo(() => {
+    const name = profile?.full_name || authUser?.full_name || "";
+    return {
+      name: name || authUser?.email || "",
+      email: profile?.email || authUser?.email || "",
+      phone: profile?.phone || "",
+      position: profile?.title || "",
+      role: "Miembro",
+      avatar: null,
+      activityLog,
+      notifications: notifications || {
+        criticalVulns: true,
+        assignedVulns: true,
+        statusUpdates: false,
+        reports: true,
+        systemAlerts: true,
+        channel: "email",
+      },
+    };
+  }, [profile, authUser, activityLog, notifications]);
 
   function showToast(message) {
     setToast(message);
     window.setTimeout(() => setToast(""), 2400);
+  }
+
+  const loadProfile = useCallback(async () => {
+    const response = await authFetch(`${API_BASE}/users/me`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || "No se pudo cargar el perfil.");
+    }
+    const data = await response.json();
+    setProfile(data);
+  }, []);
+
+  const loadNotifications = useCallback(async () => {
+    const response = await authFetch(`${API_BASE}/users/me/notifications`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || "No se pudieron cargar las notificaciones.");
+    }
+    const data = await response.json();
+    setNotifications(data);
+  }, []);
+
+  const loadActivities = useCallback(async () => {
+    const response = await authFetch(`${API_BASE}/users/me/activities?limit=10`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.detail || "No se pudo cargar el historial.");
+    }
+    const data = await response.json();
+    const mapped = data.map((item) => ({
+      action: item.action,
+      timestamp: item.created_at,
+      ip: item.ip,
+    }));
+    setActivityLog(mapped);
+  }, []);
+
+  const reloadAll = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await Promise.all([loadProfile(), loadNotifications(), loadActivities()]);
+    } catch (err) {
+      setError(err.message || "No se pudo cargar tu perfil.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadProfile, loadNotifications, loadActivities]);
+
+  useEffect(() => {
+    reloadAll();
+  }, [reloadAll]);
+
+  const handleProfileSave = useCallback(async (payload) => {
+    const response = await authFetch(`${API_BASE}/users/me/profile`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || "No se pudo actualizar.");
+    }
+    setProfile(data);
+    await checkSession();
+  }, [checkSession]);
+
+  const handlePasswordSave = useCallback(async (payload) => {
+    const response = await authFetch(`${API_BASE}/users/me/password`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || "No se pudo actualizar la contraseña.");
+    }
+    setProfile(data);
+    await checkSession();
+  }, [checkSession]);
+
+  const handleNotificationSave = useCallback(async (payload) => {
+    const response = await authFetch(`${API_BASE}/users/me/notifications`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.detail || "No se pudieron guardar las preferencias.");
+    }
+    setNotifications(data);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="auth-loading">
+        <div className="spinner" />
+        <p>Cargando perfil...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="auth-loading">
+        <p>{error}</p>
+      </div>
+    );
   }
 
   return (
@@ -61,16 +166,19 @@ export default function UserProfile({
           <PersonalInfo user={profileData} />
           <EditProfile
             user={profileData}
-            onSave={onProfileSave}
+            onSave={handleProfileSave}
             onSuccess={() => showToast("Perfil actualizado")}
-            requireName={requiresProfile && !profileData?.name}
+            requireName={requiresProfile && !profile?.full_name}
           />
         </div>
         <div className="profile-page__column">
-          <ChangePassword onSave={onPasswordSave} onSuccess={() => showToast("Contraseña actualizada")} />
+          <ChangePassword
+            onSave={handlePasswordSave}
+            onSuccess={() => showToast("Contraseña actualizada")}
+          />
           <NotificationPreferences
             notifications={profileData.notifications}
-            onSave={onNotificationSave}
+            onSave={handleNotificationSave}
             onSuccess={() => showToast("Preferencias guardadas")}
           />
         </div>
